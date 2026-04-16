@@ -15,7 +15,10 @@ from typing import (TYPE_CHECKING, Callable, List, Literal, Optional, Tuple,
 import numpy as np
 import torch
 from easydict import EasyDict
-from torch.optim.lr_scheduler import LRScheduler
+try:
+    from torch.optim.lr_scheduler import LRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 
 from .model_config import BasicTSModelConfig
 

@@ -149,10 +149,17 @@ class BasicTSRunner:
             self.ptdtype = model_dtype
         self.use_amp = self.ptdtype in [torch.bfloat16, torch.float16]
         if self.use_amp: assert cfg.gpus is not None, "AMP only supports CUDA."
-        self.amp_ctx = torch.amp.autocast(device_type="cuda", dtype=self.ptdtype, enabled=self.use_amp)
-        # GradScaler will scale up gradients and some of them might become inf, which may cause lr_scheduler throw incorrect warning information. See:
-        # https://discuss.pytorch.org/t/userwarning-detected-call-of-lr-scheduler-step-before-optimizer-step-in-pytorch-1-1-0-and-later-you-should-call-them-in-the-opposite-order-optimizer-step-before-lr-scheduler-step/88295/6
-        self.amp_scaler = torch.amp.GradScaler(enabled=self.use_amp)
+        if hasattr(torch, "amp"):
+            self.amp_ctx = torch.amp.autocast(device_type="cuda", dtype=self.ptdtype, enabled=self.use_amp)
+            # GradScaler will scale up gradients and some of them might become inf, which may cause lr_scheduler throw incorrect warning information. See:
+            # https://discuss.pytorch.org/t/userwarning-detected-call-of-lr-scheduler-step-before-optimizer-step-in-pytorch-1-1-0-and-later-you-should-call-them-in-the-opposite-order-optimizer-step-before-lr-scheduler-step/88295/6
+            self.amp_scaler = torch.amp.GradScaler(enabled=self.use_amp)
+        elif self.use_amp:
+            self.amp_ctx = torch.cuda.amp.autocast(dtype=self.ptdtype, enabled=True)
+            self.amp_scaler = torch.cuda.amp.GradScaler(enabled=True)
+        else:
+            self.amp_ctx = nullcontext()
+            self.amp_scaler = torch.cuda.amp.GradScaler(enabled=False)
 
         # declare data loaders
         self.train_data_loader = None
